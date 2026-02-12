@@ -1,28 +1,77 @@
-import express from 'express';
+import express from 'express'
+import { people } from './data.js '
+import peopleRouter from './routes/people.js'
+import authorize from './routes/auth.js'
 
 const app = express()
-// req => middleware => res
 
-const logger = (req, res, next) => {
-  const method=req.method
-  const url=req.url
-  const time=new Date().getFullYear()
-  console.log(method, url, time)
-  // res.send('logger')
-  next()
+app.use(express.static('./method-public'))
+//parse form data
+app.use(express.urlencoded({ extended: false }))
+//parse json
+app.use(express.json())
+
+app.use('/api/people', peopleRouter)
+app.use('/login', authorize)
+
+app.post('/login', (req, res) => {
+  const { name } = req.body
+  if (name) {
+
+    return res.status(200).send(`welcome ${name}`)
+  }
+
+  res.status(401).send('please provide credentials')  
+ 
+  
+}) 
+
+
+
+
+app.get('/api/people', (req, res) => {
+  res.status(200).json({ success: true, data: people })
+})
+
+app.post('/api/people', (req, res) => {
+  const { name } = req.body
+  if (!name) {
+    return res.status(400).json({ success: false, msg: 'please provide name value' })
+  }
+  res.status(201).json({ success: true, person: name })
+})
+
+app.put('/api/people/:id', (req, res) => {
+  const { id } = req.params
+  const { name } = req.body
+  const person = people.find((person) => person.id === Number(id))
+  if (!person) {
+    return res.status(404).json({ success: false, msg: `no person with id ${id}` })
+  }
+  const newPeople = people.map((person) => {
+    if (person.id === Number(id)) {
+      person.name = name
+    }
+    return person
+  }
+  )
+  res.status(200).json({ success: true, data: newPeople })
+})
+
+app.delete('/api/people/:id', (req, res) => {
+  const { id } = req.params
+  const person = people.find((person) => person.id === Number(id))
+  if (!person) {
+    return res.status(404).json({ success: false, msg: `no person with id ${id}` })
+  }
+  const newPeople = people.filter((person) => person.id !== Number(id))
+  res.status(200).json({ success: true, data: newPeople })
 }
+)
 
-app.use(logger)
 
-app.get('/', logger, (req, res) => {
-
-  res.send('home page')
-})
-
-app.get('/about',logger, (req, res) => {
-    res.send('about page')
-})
 
 app.listen(5000, () => {
   console.log('server is listening on port 5000....')
-})
+}
+)
